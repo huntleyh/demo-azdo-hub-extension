@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title> A Demo AzDo Hub Extension</title>
+    <script src="lib/VSS.SDK.min.js"></script>
+    <style>
+        body {
+            background-color: rgb(255, 255, 255);
+            color: rgb(0, 0, 0);
+            margin: 10px;    
+            font-family: "Segoe UI VSS (Regular)","-apple-system",BlinkMacSystemFont,"Segoe UI",sans-serif;
+        }
+    </style>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script type="text/javascript">
+        VSS.init();
+        VSS.ready(function() {
+            document.getElementById("name").innerText = VSS.getWebContext().user.name;
+
+            VSS.getAccessToken().then(response => {
+                getPipelines(response.token); //If we get a token successfully then we can load our pipelines
+            });
+        });
+
+        // Retrieve a list of pipelines
+        function getPipelines(accessToken){
+            // Using Azure DevOps Rest API
+            // https://dev.azure.com/{organization}/{project}/_apis/pipelines?api-version=7.1-preview.1
+            // Documented here: https://learn.microsoft.com/en-us/rest/api/azure/devops/pipelines/pipelines/list?view=azure-devops-rest-7.1
+
+            let accountUri = VSS.getWebContext().account.name;
+            let projectId = VSS.getWebContext().project.id;
+
+            let uri = `https://dev.azure.com/${accountUri}/${projectId}/_apis/pipelines?api-version=7.1-preview.1`;
+
+            // Make the HTTP request to retrieve a list of pipelines
+            axios
+                .get(uri, {
+                    headers: {
+                    Authorization: 'Bearer ' + accessToken
+                    }
+                })
+                .then(response => {
+                    const pipelines = response.data
+                    console.log(`GET pipelines`, pipelines)
+                    // Build our list of pipelines for display
+                    var pipelinesContainer= document.getElementById("pipelines");
+                    for (var i = 0; i <= pipelines.count; i++) {
+                        var div = document.createElement("div");
+                        div.innerHTML = ("<a href='"+ pipelines.value[0]._links.web.href + "' target='_top'>" + pipelines.value[i].name + "</a>");
+                        pipelinesContainer.appendChild(div);
+                    }
+                })
+                .catch(error => console.error(error))
+        }
+    </script>
+</head>
+<body>        
+    <h1>Hello, <span id="name"></span></h1>
+    <br />
+    <h2>See below for a list of Pipelines you have access to:</h2>
+    <div id="pipelines">
+
+    </div>
+</body>
+</html>
